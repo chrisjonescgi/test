@@ -14,7 +14,8 @@ jobs:
         id: slack
         uses: slackapi/slack-github-action@v1.26.0
         with:
-          slack-webhook-url: ${{ secrets.SLACK_GITHUB_PR_NOTIFIER_WEBHOOL_URL }}
+          webhook: ${{ secrets.SLACK_GITHUB_PR_NOTIFIER_WEBHOOL_URL }}
+          webhook-type: webhook-trigger
           payload: |
             {
               "text": "PR #${{ github.event.pull_request.number }} opened *${{ github.event.pull_request.title }}* (0/2 reviewed) by ${{ github.event.pull_request.user.login }}. Check it out: ${{ github.event.pull_request.html_url }}"
