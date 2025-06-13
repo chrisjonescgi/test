@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Send Slack webhook
         id: slack
-        uses: slackapi/slack-github-action@v1.26.0
+        uses: slackapi/slack-github-action@v2.1.0
         with:
           webhook: ${{ secrets.SLACK_GITHUB_PR_NOTIFIER_WEBHOOL_URL }}
           webhook-type: webhook-trigger
@@ -20,11 +20,11 @@ jobs:
             {
               "text": "PR #${{ github.event.pull_request.number }} opened *${{ github.event.pull_request.title }}* (0/2 reviewed) by ${{ github.event.pull_request.user.login }}. Check it out: ${{ github.event.pull_request.html_url }}"
             }
-      - name: Store Slack Message Metadata
-        run: |
-          git config --global user.name 'Github Action'
-          git config --global user.email 'action@github.com'
-          git add slack_metadata_pr_${{ github.event.pull_request.number }}.json
-          git commit -m "Store Slack message metadata for PR #${{ github.event.pull_request.number }}"
-          git push
+      # - name: Store Slack Message Metadata
+      #   run: |
+      #     git config --global user.name 'Github Action'
+      #     git config --global user.email 'action@github.com'
+      #     git add slack_metadata_pr_${{ github.event.pull_request.number }}.json
+      #     git commit -m "Store Slack message metadata for PR #${{ github.event.pull_request.number }}"
+      #     git push
     
