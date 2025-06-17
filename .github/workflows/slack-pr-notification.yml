@@ -22,13 +22,12 @@ jobs:
           SLACK_BOT_TOKEN ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL ${{ secrets.SLACK_CHANNEL }}
           GITHUB_TOKEN {{ secrets.GITHUB_TOKEN }}
+          PR_ACTION ${{ github.event.action }}
+          PR_NUMBER ${{ github.event.pull_request.number }}
+          REPO ${{ github.respository }}
+          REVIEW_STATE ${{ github.event.review.state || '' }}
         run: |
           node: .github/workflows/pr-notifier.js
-        with:
-          pr_action: ${{ github.event.action }}
-          pr_number: ${{ github.event.pull_request.number }}
-          repo: ${{ github.respository }}
-          review_state: ${{ github.event.review.state || '' }}
 
       # - name: Send Slack webhook
       #   id: slack
