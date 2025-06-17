@@ -20,7 +20,7 @@ jobs:
       - name: Verify Node.js installation
         run: |
           node --version || { echo "Node.js not found"; exit 1; }
-          npm --version || { echo "npm not found"; exit 1 }
+          npm --version || { echo "npm not found"; exit 1; }
           echo "PATH: $PATH"
           which node
 
