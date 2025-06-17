@@ -18,14 +18,14 @@ jobs:
           node-version: 20
       
       - name: Handle PR notification
-        env:
-          SLACK_BOT_TOKEN ${{ secrets.SLACK_BOT_TOKEN }}
-          SLACK_CHANNEL ${{ secrets.SLACK_CHANNEL }}
-          GITHUB_TOKEN {{ secrets.GITHUB_TOKEN }}
-          PR_ACTION ${{ github.event.action }}
-          PR_NUMBER ${{ github.event.pull_request.number }}
-          REPO ${{ github.respository }}
-          REVIEW_STATE ${{ github.event.review.state || '' }}
+        # env:
+        #   SLACK_BOT_TOKEN ${{ secrets.SLACK_BOT_TOKEN }}
+        #   SLACK_CHANNEL ${{ secrets.SLACK_CHANNEL }}
+        #   GITHUB_TOKEN {{ secrets.GITHUB_TOKEN }}
+        #   PR_ACTION ${{ github.event.action }}
+        #   PR_NUMBER ${{ github.event.pull_request.number }}
+        #   REPO ${{ github.respository }}
+        #   REVIEW_STATE ${{ github.event.review.state || '' }}
         run: |
           node: .github/workflows/pr-notifier.js
 
