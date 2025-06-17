@@ -44,7 +44,7 @@ async function getPRApprovals() {
     return reviews.filter(review => review.state === 'APPROVED').length;
 }
 
-async function postSlackMessage(text, chanel) {
+async function postSlackMessage(text, channel) {
     const options = {
         hostname: 'slack.com',
         path: '/api.chat.postMessage',
