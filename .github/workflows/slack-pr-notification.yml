@@ -1,29 +1,49 @@
 name: Notify Slack on Pull Request
 on:
   pull_request:
-    types: [opened]
-permissions:
-  contents: write
+    types: [opened, review_requested, review_request_removed]
+  pull_request_review:
+    types: [submitted]
+
 jobs:
   slack-notification:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout respository
         uses: actions/checkout@v4
-      - name: Send Slack webhook
-        id: slack
-        uses: slackapi/slack-github-action@v1.26.0
+      
+      - name: Set up Node.js
+        uses: actions/setup/node@v4
         with:
-          slack-webhook-url: ${{ secrets.SLACK_GITHUB_PR_NOTIFIER_WEBHOOL_URL }}
-          payload: |
-            {
-              "text": "PR #${{ github.event.pull_request.number }} opened *${{ github.event.pull_request.title }}* (0/2 reviewed) by ${{ github.event.pull_request.user.login }}. Check it out: ${{ github.event.pull_request.html_url }}"
-            }
-      - name: Store Slack Message Metadata
+          node-version: '20'
+      
+      - name: Handle PR notification
+        env:
+          SLACK_BOT_TOKEN ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          GITHUB_TOKEN: {{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.name 'Github Action'
-          git config --global user.email 'action@github.com'
-          git add slack_metadata_pr_${{ github.event.pull_request.number }}.json
-          git commit -m "Store Slack message metadata for PR #${{ github.event.pull_request.number }}"
-          git push
+          node: .github/workflows/pr-notifier.js
+        with:
+          pr_action: ${{ github.event.action }}
+          pr_number: ${{ github.event.pull_request.number }}
+          repo: ${{ github.respository }}
+          review_state: ${{ github.event.review.state || '' }}
+
+      # - name: Send Slack webhook
+      #   id: slack
+      #   uses: slackapi/slack-github-action@v1.26.0
+      #   with:
+      #     slack-webhook-url: ${{ secrets.SLACK_GITHUB_PR_NOTIFIER_WEBHOOL_URL }}
+      #     payload: |
+      #       {
+      #         "text": "PR #${{ github.event.pull_request.number }} opened *${{ github.event.pull_request.title }}* (0/2 reviewed) by ${{ github.event.pull_request.user.login }}. Check it out: ${{ github.event.pull_request.html_url }}"
+      #       }
+      # - name: Store Slack Message Metadata
+      #   run: |
+      #     git config --global user.name 'Github Action'
+      #     git config --global user.email 'action@github.com'
+      #     git add slack_metadata_pr_${{ github.event.pull_request.number }}.json
+      #     git commit -m "Store Slack message metadata for PR #${{ github.event.pull_request.number }}"
+      #     git push
     
