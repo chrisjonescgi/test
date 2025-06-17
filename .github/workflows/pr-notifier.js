@@ -1,13 +1,20 @@
 const http = require('https');
+const fs = require('fs');
 
 // Env variables
 const slackBotToken = process.env.SLACK_BOT_TOKEN;
 const slackChannel = process.env.SLACK_CHANNEL;
 const githubToken = process.env.GH_TOKEN;
-const prAction = process.env.GITHUB_EVENT_ACTION;
-const prNumber = process.env.GITHUB_PULL_REQUEST_NUMBER;
-const repo = process.env.GITHUB_REPOSITORY;
-const reviewState = process.env.GITHUB_REVIEW_STATE || '';
+// const prAction = process.env.GITHUB_EVENT_ACTION;
+// const prNumber = process.env.GITHUB_PULL_REQUEST_NUMBER;
+// const repo = process.env.GITHUB_REPOSITORY;
+// const reviewState = process.env.GITHUB_REVIEW_STATE || '';
+
+const eventData = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+const prAction = eventData.action;
+const prNumber = eventData.pull_request.number;
+const repo = eventData.repository.full_name;
+const reviewState = eventData.review ? eventData.review.state : '';
 
 async function makeRequest(options, body) {
     return new Promise((resolve, reject) => {
