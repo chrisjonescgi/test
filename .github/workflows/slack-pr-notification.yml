@@ -23,8 +23,9 @@ jobs:
           npm --version || { echo "npm not found"; exit 1; }
           echo "PATH: $PATH"
           which node
+          .github/workflows/pr-notifier.js
 
-      - name: Handle PR notification
+      # - name: Handle PR notification
         # env:
         #   SLACK_BOT_TOKEN ${{ secrets.SLACK_BOT_TOKEN }}
         #   SLACK_CHANNEL ${{ secrets.SLACK_CHANNEL }}
@@ -33,8 +34,8 @@ jobs:
         #   PR_NUMBER ${{ github.event.pull_request.number }}
         #   REPO ${{ github.respository }}
         #   REVIEW_STATE ${{ github.event.review.state || '' }}
-        run: |
-          node: .github/workflows/pr-notifier.js
+        # run: |
+        #   node: .github/workflows/pr-notifier.js
 
       # - name: Send Slack webhook
       #   id: slack
