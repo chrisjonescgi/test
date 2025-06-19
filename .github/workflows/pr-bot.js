@@ -25,7 +25,7 @@ console.log('eventData: ', eventData);
 const prAction = eventData.action;
 const prNumber = eventData.pull_request.number;
 const prAuthor = eventData.pull_request.user.login;
-const prTitle = eventData.pull_request.title;
+const prTitle = eventData.pull_request.title.slice(0, 60) + (eventData.pull_request.title.length > 60 ? '…' : '');
 const repo = eventData.repository.full_name;
 const reviewState = eventData.review ? eventData.review.state : '';
 const prLink = `https://github.com/${repo}/pull/${prNumber}`;
