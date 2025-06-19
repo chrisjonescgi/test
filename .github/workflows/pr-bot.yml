@@ -17,13 +17,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Verify Node.js installation
-        run: |
-          node --version || { echo "Node.js not found"; exit 1; }
-          npm --version || { echo "npm not found"; exit 1; }
-          echo "PATH: $PATH"
-          which node
-
       - name: Run PR-bot script
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
