@@ -24,6 +24,9 @@ try {
 console.log('eventData: ', eventData);
 const prAction = eventData.action;
 const prNumber = eventData.pull_request.number;
+const prAuthor = eventData.pull_request.user.login;
+const prTitle = eventData.pull_request.title;
+const prLink = `https://github.com/${repo}/pull/${prNumber}`;
 const repo = eventData.repository.full_name;
 const reviewState = eventData.review ? eventData.review.state : '';
 
@@ -168,8 +171,7 @@ async function main() {
         return;
     }
     
-    const prLink = `https://github.com/${repo}/pull/${prNumber}`;
-    const prMessage = `(0/2 approvals) PR: ${prLink}`;
+    const prMessage = `(0 of 2 approvals) PR #${prNumber} by ${prOpener}\n<${prLink}|${prTitle}>`;
 
     try {
         if (prAction === 'opened') {
@@ -191,25 +193,6 @@ async function main() {
             console.log('Processing review for PR:', prNumber);
             const approvals = await getPRApprovals();
             console.log('Current approvals:', approvals);
-    
-            // const commentsOptions = {
-            //     hostname: 'api.github.com',
-            //     path: `/repos/${repo}/issues/${prNumber}/comments`,
-            //     method: 'GET',
-            //     headers: {
-            //         Authorization: `Bearer ${githubToken}`,
-            //         Accept: 'application/vnd.github.v3+json',
-            //         'User-Agent': 'Node.js',
-            //     },
-            // };
-            // const comments = await makeRequest(commentsOptions);
-            // const tsComment = comments.find((c) => c.body.startsWith('SLACK_MESSAGE_TS:'));
-            // if (!tsComment) {
-            //     console.error('No Slack message timestamp found in PR comments');
-            //     return;
-            // }
-    
-            // const ts = tsComment.body.split(':')[1];
 
             const ts = await getSlackMessageTimestamp();
             if (!ts) {
@@ -219,7 +202,7 @@ async function main() {
     
             if (approvals === 1) {
                 console.log('Updating Slack message to 1/2 approvals');
-                await updateSlackMessage(ts, `(1/2 approvals) PR: ${prLink}`, slackChannelId);
+                await updateSlackMessage(ts, `(1 of 2 approvals) PR #${prNumber} by ${prOpener}\n<${prLink}|${prTitle}>`, slackChannelId);
             } else if (approvals >= 2) {
                 console.log('Deleting Slack message due to 2+ approvals');
                 await deleteSlackMessage(ts, slackChannelId);
