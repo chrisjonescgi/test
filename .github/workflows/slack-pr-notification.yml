@@ -25,6 +25,10 @@ jobs:
           which node
 
       - name: Handle PR notification
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         run: |
           node .github/workflows/pr-notifier.js
 
