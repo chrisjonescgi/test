@@ -3,35 +3,46 @@ const fs = require('fs');
 
 // Env variables
 const slackBotToken = process.env.SLACK_BOT_TOKEN;
-console.log('slackBotToken: ', slackBotToken)
 const slackChannel = process.env.SLACK_CHANNEL;
-console.log('slackChannel: ', slackChannel)
 const githubToken = process.env.GH_TOKEN;
-console.log('githubToken: ', githubToken)
-// const prAction = process.env.GITHUB_EVENT_ACTION;
-// const prNumber = process.env.GITHUB_PULL_REQUEST_NUMBER;
-// const repo = process.env.GITHUB_REPOSITORY;
-// const reviewState = process.env.GITHUB_REVIEW_STATE || '';
 
-const eventData = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
-console.log('eventData: ', eventData)
+// Validate environment variables
+if (!slackBotToken || !slackChannel || !githubToken) {
+  console.error('Missing required environment variables');
+  process.exit(1);
+}
+
+// const eventData = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+// Load event data
+let eventData;
+try {
+  eventData = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+} catch (error) {
+  console.error('Failed to parse GITHUB_EVENT_PATH:', error.message);
+  process.exit(1);
+}
 const prAction = eventData.action;
-console.log('prAction: ', prAction)
 const prNumber = eventData.pull_request.number;
-console.log('prNumber: ', prNumber)
 const repo = eventData.repository.full_name;
-console.log('repo: ', repo)
 const reviewState = eventData.review ? eventData.review.state : '';
-console.log('reviewState: ', reviewState)
+
+console.log('Environment variables and event data:');
+console.log({ slackChannel, prAction, prNumber, repo, reviewState });
 
 async function makeRequest(options, body) {
     return new Promise((resolve, reject) => {
         const req = http.request(options, (res) => {
             let data = '';
             res.on('data', (chunk) => data += chunk);
-            res.on('end', () => resolve(JSON.parse(data)));
+            res.on('end', () => {
+            try {
+              resolve(JSON.parse(data));
+            } catch (error) {
+              reject(new Error(`Failed to parse response: ${error.message}`));
+            }
+          });
         });
-        req.on('error', reject);
+        req.on('error', (error) => reject(new Error(`Request error: ${error.message}`)));
         if (body) req.write(JSON.stringify(body));
         req.end();
     });
@@ -48,8 +59,13 @@ async function getPRApprovals() {
             'User-Agent': 'Node.js'
         }
     };
-    const reviews = await makeRequest(options);
-    return reviews.filter(review => review.state === 'APPROVED').length;
+    try {
+        const reviews = await makeRequest(options);
+        return reviews.filter((review) => review.state === 'APPROVED').length;
+    } catch (error) {
+        console.error('Failed to get PR approvals:', error.message);
+        throw error;
+    }
 }
 
 async function postSlackMessage(text, channel) {
@@ -62,8 +78,16 @@ async function postSlackMessage(text, channel) {
             'Content-Type': 'application/json'
         }
     };
-    const reponse = await makeRequest(options, { channel, text });
-    return response.ts;
+    try {
+        const response = await makeRequest(options, { channel, text });
+        if (!response.ok) {
+            throw new Error(`Slack API error: ${response.error}`);
+        }
+        return response.ts;
+    } catch (error) {
+        console.error('Failed to post Slack message:', error.message);
+        throw error;
+    }
 }
 
 async function updateSlackMessage(ts, text, channel) {
@@ -76,7 +100,15 @@ async function updateSlackMessage(ts, text, channel) {
             'Content-Type': 'application/json'
         }
     };
-    await makeRequest(options, { channel, ts, text });
+    try {
+        const response = await makeRequest(options, { channel, ts, text });
+        if (!response.ok) {
+            throw new Error(`Slack API error: ${response.error}`);
+        }
+    } catch (error) {
+        console.error('Failed to update Slack message:', error.message);
+        throw error;
+    }
 }
 
 async function deleteSlackMessage(ts, channel) {
@@ -89,55 +121,79 @@ async function deleteSlackMessage(ts, channel) {
             'Content-Type': 'application/json'
         }
     };
-    await makeRequest(options, { channel, ts });
-}
-
-async function main() {
-    const prLink = `https://github.com/${repo}/pull/${prNumber}`;
-    const prMessage = `(0/2 approvals) PR: ${prLink}`;
-
-    if (prAction === 'opened') {
-        // post initial message in slack
-        const ts = await postSlackMessage(prMessage, slackChannel);
-        // store timestamp in PR comment (to be used for updated message approval count prefix later)
-        const commentOptions = {
-            hostname: 'api.github.com',
-            path: `/repos/${repo}/issues/${prNumber}/comments`,
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${githubToken}`,
-                'Accept': 'application/vnd.github.v3+json',
-                'User-Agent': 'Node.js'
-            }
-        };
-        await makeRequest(commentOptions, { body: `SLACK_MESSAGE_TS:${ts}` });
-    } else if (prAction === 'submitted' && reviewState === 'approved') {
-        // get current approval count
-        const approvals = await getPRApprovals();
-        // get stored slack message timestamp from PR comment
-        const commentsOptions = {
-            hostname: 'api/github.com',
-            path: `/repos/${repo}/issues/${prNumber}/comments`,
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${githubToken}`,
-                'Accept': 'application/vnd.github.v3+json',
-                'User-Agent': 'Node.js'
-            }
-        };
-        const comments = await makeRequest(commentOptions);
-        const tsComment = comments.find(c => c.body.startsWith('SLACK_MESSAGE_TS:'));
-        if (!tsComment) return;
-
-        const ts = tsComment.body.split(':')[1];
-        if (approvals === 1) {
-            // update message to 1/2 approvals
-            await updateSlackMessage(ts, `(1/2 approvals) PR: ${prLink}`, slackChannel);
-        } else if (approvals >= 2) {
-            // remove message from channel when 2 approvals met
-            await deleteSlackMessage(ts, slackChannel);
+    try {
+        const response = await makeRequest(options, { channel, ts });
+        if (!response.ok) {
+            throw new Error(`Slack API error: ${response.error}`);
         }
+    } catch (error) {
+        console.error('Failed to delete Slack message:', error.message);
+        throw error;
     }
 }
 
-main().catch(console.error);
+async function main() {
+    if (!prNumber || !repo) {
+        console.error('Invalid PR data:', { prNumber, repo });
+        return;
+    }
+    
+    const prLink = `https://github.com/${repo}/pull/${prNumber}`;
+    const prMessage = `(0/2 approvals) PR: ${prLink}`;
+
+    try {
+        if (prAction === 'opened') {
+            console.log('Posting initial Slack message for PR:', prNumber);
+            const ts = await postSlackMessage(prMessage, slackChannel);
+            const commentOptions = {
+                hostname: 'api.github.com',
+                path: `/repos/${repo}/issues/${prNumber}/comments`,
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${githubToken}`,
+                    Accept: 'application/vnd.github.v3+json',
+                    'User-Agent': 'Node.js',
+                },
+            };
+            await makeRequest(commentOptions, { body: `SLACK_MESSAGE_TS:${ts}` });
+            console.log('Posted Slack message and stored timestamp:', ts);
+        } else if (prAction === 'submitted' && reviewState === 'approved') {
+            console.log('Processing review for PR:', prNumber);
+            const approvals = await getPRApprovals();
+            console.log('Current approvals:', approvals);
+    
+            const commentsOptions = {
+                hostname: 'api.github.com',
+                path: `/repos/${repo}/issues/${prNumber}/comments`,
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${githubToken}`,
+                    Accept: 'application/vnd.github.v3+json',
+                    'User-Agent': 'Node.js',
+                ]},
+            };
+            const comments = await makeRequest(commentsOptions);
+            const tsComment = comments.find((c) => c.body.startsWith('SLACK_MESSAGE_TS:'));
+            if (!tsComment) {
+                console.error('No Slack message timestamp found in PR comments');
+                return;
+            }
+    
+            const ts = tsComment.body.split(':')[1];
+            if (approvals === 1) {
+                console.log('Updating Slack message to 1/2 approvals');
+                await updateSlackMessage(ts, `(1/2 approvals) PR: ${prLink}`, slackChannel);
+            } else if (approvals >= 2) {
+                console.log('Deleting Slack message due to 2+ approvals');
+                await deleteSlackMessage(ts, slackChannel);
+            }
+        } else {
+            console.log('No action required for event:', prAction);
+        }
+    } catch (error) {
+        console.error('Main function error:', error.message);
+        process.exit(1);
+    }
+}
+
+main();
