@@ -1,4 +1,4 @@
-name: Notify Slack on Pull Requests
+name: pr-bot
 on:
   pull_request:
     types: [opened, review_requested, review_request_removed]
