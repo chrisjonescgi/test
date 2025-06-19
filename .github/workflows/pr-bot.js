@@ -26,9 +26,9 @@ const prAction = eventData.action;
 const prNumber = eventData.pull_request.number;
 const prAuthor = eventData.pull_request.user.login;
 const prTitle = eventData.pull_request.title;
-const prLink = `https://github.com/${repo}/pull/${prNumber}`;
 const repo = eventData.repository.full_name;
 const reviewState = eventData.review ? eventData.review.state : '';
+const prLink = `https://github.com/${repo}/pull/${prNumber}`;
 
 console.log('Environment variables and event data:');
 console.log({ slackChannel, prAction, prNumber, repo, reviewState });
