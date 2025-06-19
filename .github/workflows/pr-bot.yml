@@ -1,0 +1,34 @@
+name: Notify Slack on Pull Requests
+on:
+  pull_request:
+    types: [opened, review_requested, review_request_removed]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  slack-notification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout respository
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verify Node.js installation
+        run: |
+          node --version || { echo "Node.js not found"; exit 1; }
+          npm --version || { echo "npm not found"; exit 1; }
+          echo "PATH: $PATH"
+          which node
+
+      - name: Run PR-bot script
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: |
+          node .github/workflows/pr-bot.js
