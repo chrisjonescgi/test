@@ -171,7 +171,7 @@ async function main() {
         return;
     }
     
-    const prMessage = `(0 of 2 approvals) PR #${prNumber} by ${prAuthor}:\n<${prLink}|${prTitle}>`;
+    const prMessage = `(0 of 2 approvals) PR #${prNumber} by ${prAuthor}:\n<${prLink}|${prTitle}>\n---`;
 
     try {
         if (prAction === 'opened') {
@@ -202,7 +202,7 @@ async function main() {
     
             if (approvals === 1) {
                 console.log('Updating Slack message to 1/2 approvals');
-                await updateSlackMessage(ts, `(1 of 2 approvals) PR #${prNumber} by ${prAuthor}:\n<${prLink}|${prTitle}>`, slackChannelId);
+                await updateSlackMessage(ts, `(1 of 2 approvals) PR #${prNumber} by ${prAuthor}:\n<${prLink}|${prTitle}>\n---`, slackChannelId);
             } else if (approvals >= 2) {
                 console.log('Deleting Slack message due to 2+ approvals');
                 await deleteSlackMessage(ts, slackChannelId);
