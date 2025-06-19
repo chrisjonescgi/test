@@ -13,7 +13,6 @@ if (!slackBotToken || !slackChannel || !slackChannelId || !githubToken) {
   process.exit(1);
 }
 
-// const eventData = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
 // Load event data
 let eventData;
 try {
