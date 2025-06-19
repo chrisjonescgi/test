@@ -170,7 +170,7 @@ async function main() {
                     Authorization: `Bearer ${githubToken}`,
                     Accept: 'application/vnd.github.v3+json',
                     'User-Agent': 'Node.js',
-                ]},
+                },
             };
             const comments = await makeRequest(commentsOptions);
             const tsComment = comments.find((c) => c.body.startsWith('SLACK_MESSAGE_TS:'));
