@@ -133,6 +133,35 @@ async function deleteSlackMessage(ts, channel) {
     }
 }
 
+async function getSlackMessageTimestamp() {
+  const commentsOptions = {
+    hostname: 'api.github.com',
+    path: `/repos/${repo}/issues/${prNumber}/comments`,
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${githubToken}`,
+      Accept: 'application/vnd.github.v3+json',
+      'User-Agent': 'Node.js',
+    },
+  };
+  try {
+    const comments = await makeRequest(commentsOptions);
+    if (!Array.isArray(comments)) {
+      console.error('Unexpected GitHub API response: comments is not an array', comments);
+      throw new Error('GitHub API did not return an array of comments');
+    }
+    const tsComment = comments.find((c) => c.body.startsWith('SLACK_MESSAGE_TS:'));
+    if (!tsComment) {
+      console.error('No Slack message timestamp found in PR comments');
+      return null;
+    }
+    return tsComment.body.split(':')[1];
+  } catch (error) {
+    console.error('Failed to get Slack message timestamp:', error.message);
+    throw error;
+  }
+}
+
 async function main() {
     if (!prNumber || !repo) {
         console.error('Invalid PR data:', { prNumber, repo });
@@ -163,24 +192,31 @@ async function main() {
             const approvals = await getPRApprovals();
             console.log('Current approvals:', approvals);
     
-            const commentsOptions = {
-                hostname: 'api.github.com',
-                path: `/repos/${repo}/issues/${prNumber}/comments`,
-                method: 'GET',
-                headers: {
-                    Authorization: `Bearer ${githubToken}`,
-                    Accept: 'application/vnd.github.v3+json',
-                    'User-Agent': 'Node.js',
-                },
-            };
-            const comments = await makeRequest(commentsOptions);
-            const tsComment = comments.find((c) => c.body.startsWith('SLACK_MESSAGE_TS:'));
-            if (!tsComment) {
-                console.error('No Slack message timestamp found in PR comments');
-                return;
+            // const commentsOptions = {
+            //     hostname: 'api.github.com',
+            //     path: `/repos/${repo}/issues/${prNumber}/comments`,
+            //     method: 'GET',
+            //     headers: {
+            //         Authorization: `Bearer ${githubToken}`,
+            //         Accept: 'application/vnd.github.v3+json',
+            //         'User-Agent': 'Node.js',
+            //     },
+            // };
+            // const comments = await makeRequest(commentsOptions);
+            // const tsComment = comments.find((c) => c.body.startsWith('SLACK_MESSAGE_TS:'));
+            // if (!tsComment) {
+            //     console.error('No Slack message timestamp found in PR comments');
+            //     return;
+            // }
+    
+            // const ts = tsComment.body.split(':')[1];
+
+            const ts = await getSlackMessageTimestamp();
+            if (!ts) {
+              console.log('No Slack message to update/delete');
+              return;
             }
     
-            const ts = tsComment.body.split(':')[1];
             if (approvals === 1) {
                 console.log('Updating Slack message to 1/2 approvals');
                 await updateSlackMessage(ts, `(1/2 approvals) PR: ${prLink}`, slackChannelId);
