@@ -21,6 +21,7 @@ try {
   console.error('Failed to parse GITHUB_EVENT_PATH:', error.message);
   process.exit(1);
 }
+console.log('eventData: ', eventData);
 const prAction = eventData.action;
 const prNumber = eventData.pull_request.number;
 const repo = eventData.repository.full_name;
