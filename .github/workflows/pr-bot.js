@@ -188,6 +188,16 @@ async function main() {
                 console.log('Deleting Slack message due to 2+ approvals');
                 await deleteSlackMessage(ts, slackChannelId);
             }
+        } else if (prAction === 'closed') { 
+          console.log('PR closed, attempting to delete Slack message for PR:', prNumber);
+          const ts = await getSlackMessageTimestamp();
+          if (!ts) {
+            console.log('No Slack message to delete');
+            return;
+          }
+          console.log('Deleting Slack message with timestamp:', ts);
+          await deleteSlackMessage(ts, slackChannel);
+          console.log('Slack message deleted successfully');
         } else {
             console.log('No action required for event:', prAction);
         }
