@@ -232,7 +232,7 @@ async function main() {
             return;
           }
           console.log('Deleting Slack message with timestamp:', ts);
-          await deleteSlackMessage(ts, slackChannel);
+          await deleteSlackMessage(ts, slackChannelId);
           console.log('Slack message deleted successfully');
         } else {
             console.log('No action required for event:', prAction);
