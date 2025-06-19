@@ -21,6 +21,7 @@ try {
   console.error('Failed to parse GITHUB_EVENT_PATH:', error.message);
   process.exit(1);
 }
+console.log('eventData: ', eventData);
 const prAction = eventData.action;
 const prNumber = eventData.pull_request.number;
 const repo = eventData.repository.full_name;
@@ -71,7 +72,7 @@ async function getPRApprovals() {
 async function postSlackMessage(text, channel) {
     const options = {
         hostname: 'slack.com',
-        path: '/api.chat.postMessage',
+        path: '/api/chat.postMessage',
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${slackBotToken}`,
@@ -93,7 +94,7 @@ async function postSlackMessage(text, channel) {
 async function updateSlackMessage(ts, text, channel) {
     const options = {
         hostname: 'slack.com',
-        path: '/api.chat.update',
+        path: '/api/chat.update',
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${slackBotToken}`,
@@ -114,7 +115,7 @@ async function updateSlackMessage(ts, text, channel) {
 async function deleteSlackMessage(ts, channel) {
      const options = {
         hostname: 'slack.com',
-        path: '/api.chat.delete',
+        path: '/api/chat.delete',
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${slackBotToken}`,
