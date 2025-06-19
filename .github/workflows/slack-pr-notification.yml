@@ -28,6 +28,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         run: |
           node .github/workflows/pr-notifier.js
