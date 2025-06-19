@@ -4,10 +4,11 @@ const fs = require('fs');
 // Env variables
 const slackBotToken = process.env.SLACK_BOT_TOKEN;
 const slackChannel = process.env.SLACK_CHANNEL;
+const slackChannelId = process.env.SLACK_CHANNEL_ID;
 const githubToken = process.env.GH_TOKEN;
 
 // Validate environment variables
-if (!slackBotToken || !slackChannel || !githubToken) {
+if (!slackBotToken || !slackChannel || !slackChannelId || !githubToken) {
   console.error('Missing required environment variables');
   process.exit(1);
 }
@@ -183,10 +184,10 @@ async function main() {
             const ts = tsComment.body.split(':')[1];
             if (approvals === 1) {
                 console.log('Updating Slack message to 1/2 approvals');
-                await updateSlackMessage(ts, `(1/2 approvals) PR: ${prLink}`, slackChannel);
+                await updateSlackMessage(ts, `(1/2 approvals) PR: ${prLink}`, slackChannelId);
             } else if (approvals >= 2) {
                 console.log('Deleting Slack message due to 2+ approvals');
-                await deleteSlackMessage(ts, slackChannel);
+                await deleteSlackMessage(ts, slackChannelId);
             }
         } else {
             console.log('No action required for event:', prAction);
