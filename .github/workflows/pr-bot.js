@@ -22,7 +22,7 @@ function validateEnvironment() {
   const missing = required.filter(key => !ENV[key]);
   
   if (missing.length > 0) {
-    console.error(`Missing required environment variables: ${missing.join(', ')}`);
+    console.error(`Missing required env variables: ${missing.join(', ')}`);
     process.exit(1);
   }
 }
@@ -101,14 +101,14 @@ const github = {
     return await httpRequest(CONFIG.GITHUB_API_BASE, path, 'POST', headers, { body });
   },
 
-  async findSlackMessageTimestamp(repo, prNumber) {
+  async getSlackMessageTimestamp(repo, prNumber) {
     const comments = await github.getComments(repo, prNumber);
     
     if (!Array.isArray(comments)) {
-      throw new Error('Invalid GitHub API response: expected array of comments');
+      throw new Error('Expected array of comments');
     }
     
-    const tsComment = comments.find(c => c.body.startsWith(CONFIG.TS_COMMENT_PREFIX));
+    const tsComment = comments.find(comment => comment.body.startsWith(CONFIG.TS_COMMENT_PREFIX));
     return tsComment ? tsComment.body.split(':')[1] : null;
   }
 };
@@ -174,67 +174,80 @@ const slack = {
   }
 };
 
-function formatPRMessage(prNumber, prAuthor, prTitle, repo, approvalCount) {
+function formatPRMessage(prNumber, prAuthor, prTitle, repo, approvalCount, emoji = '') {
   const truncatedTitle = prTitle.length > CONFIG.TITLE_MAX_LENGTH 
     ? prTitle.slice(0, CONFIG.TITLE_MAX_LENGTH) + '…' 
     : prTitle;
   const prLink = `https://github.com/${repo}/pull/${prNumber}`;
   
-  return `(${approvalCount} of ${CONFIG.REQUIRED_APPROVALS} approvals) PR #${prNumber} by ${prAuthor}:\n<${prLink}|${truncatedTitle}>\n---`;
+  return `(${approvalCount} of ${CONFIG.REQUIRED_APPROVALS} approvals) ${emoji} PR #${prNumber} by ${prAuthor}:\n<${prLink}|${truncatedTitle}>`;
 }
 
 async function handlePROpened(event) {
   const { prNumber, prAuthor, prTitle, repo } = event;
   const message = formatPRMessage(prNumber, prAuthor, prTitle, repo, 0);
   
-  console.log(`Posting initial Slack message for PR #${prNumber}`);
   const messageTs = await slack.postMessage(ENV.slackChannel, message);
   
   await github.postComment(repo, prNumber, `${CONFIG.TS_COMMENT_PREFIX}${messageTs}`);
-  console.log(`Posted Slack message with timestamp: ${messageTs}`);
 }
 
 async function handlePRReview(event) {
   const { prNumber, prAuthor, prTitle, repo, reviewState } = event;
-  
+
+  if (reviewState === 'changes_requested') {
+    await handlePRChangesRequested(event);
+    return;
+  }
+
   if (reviewState !== 'approved') {
-    console.log(`Ignoring non-approval review: ${reviewState}`);
     return;
   }
   
-  console.log(`Processing approval for PR #${prNumber}`);
   const approvalCount = await github.getReviews(repo, prNumber);
-  console.log(`Current approvals: ${approvalCount}`);
   
-  const messageTs = await github.findSlackMessageTimestamp(repo, prNumber);
+  const messageTs = await github.getSlackMessageTimestamp(repo, prNumber);
+  
   if (!messageTs) {
-    console.log('No Slack message found to update');
     return;
   }
   
   if (approvalCount < CONFIG.REQUIRED_APPROVALS) {
     const message = formatPRMessage(prNumber, prAuthor, prTitle, repo, approvalCount);
     await slack.updateMessage(ENV.slackChannelId, messageTs, message);
-    console.log(`Updated Slack message to ${approvalCount}/${CONFIG.REQUIRED_APPROVALS} approvals`);
   } else {
     await slack.deleteMessage(ENV.slackChannelId, messageTs);
-    console.log('Deleted Slack message (PR fully approved)');
   }
+}
+
+async function handlePRChangesRequested(event) {
+  const { prNumber, prAuthor, prTitle, repo, reviewState } = event;
+
+  if (reviewState !== 'changes_requested') {
+    return;
+  }
+
+  const approvalCount = await github.getReviews(repo, prNumber);
+  const messageTs = await github.getSlackMessageTimestamp(repo, prNumber);
+
+  if (!messageTs) {
+    return;
+  }
+
+  const message = formatPRMessage(prNumber, prAuthor, prTitle, repo, approvalCount, '🔧');
+  await slack.updateMessage(ENV.slackChannelId, messageTs, message);
 }
 
 async function handlePRClosed(event) {
   const { prNumber, repo } = event;
   
-  console.log(`PR #${prNumber} closed, checking for Slack message`);
-  const messageTs = await github.findSlackMessageTimestamp(repo, prNumber);
+  const messageTs = await github.getSlackMessageTimestamp(repo, prNumber);
   
   if (!messageTs) {
-    console.log('No Slack message to delete');
     return;
   }
   
   await slack.deleteMessage(ENV.slackChannelId, messageTs);
-  console.log('Deleted Slack message');
 }
 
 async function main() {
@@ -242,7 +255,7 @@ async function main() {
   const event = loadEventData();
   
   if (!event.prNumber || !event.repo) {
-    console.error('Invalid PR data');
+    console.error('Error with PR data');
     return;
   }
   
@@ -258,7 +271,7 @@ async function main() {
         await handlePRClosed(event);
         break;
       default:
-        console.log(`No action required for event: ${event.action}`);
+        console.log(`No workflow required for event: ${event.action}`);
     }
   } catch (error) {
     console.error(`Error processing ${event.action} event:`, error.message);
