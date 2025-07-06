@@ -180,7 +180,7 @@ function formatPRMessage(prNumber, prAuthor, prTitle, repo, approvalCount, emoji
     : prTitle;
   const prLink = `https://github.com/${repo}/pull/${prNumber}`;
   
-  return `(${approvalCount} of ${CONFIG.REQUIRED_APPROVALS} approvals) ${emoji} PR #${prNumber} by ${prAuthor}:\n<${prLink}|${truncatedTitle}>`;
+  return `(${approvalCount} of ${CONFIG.REQUIRED_APPROVALS} approvals) PR #${prNumber} by ${prAuthor}:\n${emoji} <${prLink}|${truncatedTitle}>`;
 }
 
 async function handlePROpened(event) {
